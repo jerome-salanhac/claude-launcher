@@ -20,8 +20,9 @@ folder name, hit `Enter`. Done.
 - **Type-to-filter folder picker** — opens near the tray, filters as you type.
 - **Keyboard-first** — arrows to navigate, Enter to launch, Escape to dismiss.
 - **`Enter`** opens [Windows Terminal](https://github.com/microsoft/terminal)
-  (or PowerShell as fallback) in the selected folder and runs `claude`
-  (or any command you configure).
+  (or a plain console as fallback) in the selected folder and runs `claude`
+  (or any command you configure) in PowerShell 7 (`pwsh`) when installed,
+  Windows PowerShell otherwise (configurable).
 - **`Ctrl+Enter`** opens Chrome on a URL pattern that includes the folder name
   — handy for WAMP/XAMPP/Laragon setups where each project has its own local URL.
 - **`Shift+Enter`** opens the selected folder in Windows Explorer.
@@ -120,7 +121,8 @@ Copy it (or let the script auto-create one) and edit freely:
     "ExcludeFolders":   [".git", "node_modules", "vendor"],
     "ClaudeCommand":    "claude",
     "ChromeUrlPattern": "http://127.0.0.1/{name}",
-    "HideAutomatedSessions": true
+    "HideAutomatedSessions": true,
+    "Shell":            "auto"
 }
 ```
 
@@ -132,6 +134,7 @@ Copy it (or let the script auto-create one) and edit freely:
 | `ClaudeCommand`    | Command to run after `cd`-ing into the project. Defaults to `claude`. Could be `code .`, `gemini`, `cursor .`, etc. |
 | `ChromeUrlPattern` | URL opened by `Ctrl+Enter`. The placeholder `{name}` is replaced by the folder's path relative to `ProjectsRoot`, URL-encoded, with `/` separators. |
 | `HideAutomatedSessions` | `true` (default) hides sessions started by scripts (`claude -p`) from the sessions list. |
+| `Shell`            | Shell that runs `ClaudeCommand`: `auto` (default: `pwsh.exe` if installed, else `powershell.exe`), `pwsh`, `powershell`, or the name/path of an executable accepting `-NoExit -Command`. |
 
 If `config.json` is missing, it's created from defaults on next run. If the
 JSON is invalid, you get a non-blocking warning and the defaults are used.
@@ -170,7 +173,8 @@ work regardless of which control has focus. The list is rendered in
 owner-draw mode for the alternating-row look.
 
 When you launch a project, the script prefers `wt.exe` (Windows Terminal) and
-falls back to plain `powershell.exe`. The `Ctrl+Enter` Chrome shortcut probes
+falls back to a plain console window; either way the command runs in the shell
+chosen by `Shell` (PowerShell 7 by default when installed). The `Ctrl+Enter` Chrome shortcut probes
 the usual Chrome install paths and falls back to the default browser.
 
 ## Troubleshooting

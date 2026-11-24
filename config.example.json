@@ -4,5 +4,6 @@
     "ExcludeFolders":   [".git", "node_modules", "vendor"],
     "ClaudeCommand":    "claude",
     "ChromeUrlPattern": "http://127.0.0.1/{name}",
-    "HideAutomatedSessions": true
+    "HideAutomatedSessions": true,
+    "Shell":            "auto"
 }

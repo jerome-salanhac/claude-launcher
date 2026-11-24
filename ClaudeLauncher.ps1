@@ -41,6 +41,7 @@ $DefaultConfig = [ordered]@{
     ClaudeCommand    = "claude"
     ChromeUrlPattern = "http://127.0.0.1/{name}"
     HideAutomatedSessions = $true   # masque les sessions lancees par script (claude -p)
+    Shell            = "auto"       # auto = pwsh.exe (PowerShell 7) si present, sinon powershell.exe
 }
 
 function Load-Config {
@@ -84,6 +85,7 @@ $ExcludeFolders   = @($cfg.ExcludeFolders)
 $ClaudeCommand    = [string]$cfg.ClaudeCommand
 $ChromeUrlPattern = [string]$cfg.ChromeUrlPattern
 $HideAutomatedSessions = [bool]$cfg.HideAutomatedSessions
+$Shell            = [string]$cfg.Shell
 
 # Lecture des sessions Claude Code locales (fonctions sans UI)
 . (Join-Path $ScriptDir "ClaudeSessions.ps1")
@@ -321,21 +323,42 @@ function Get-SessionCommand {
     return "$ClaudeCommand --resume $($Entry.Id)"
 }
 
+function Get-ShellExe {
+    # Shell utilise pour lancer claude (cle "Shell" de config.json) :
+    #   "auto"       => pwsh.exe (PowerShell 7) s'il est installe, sinon powershell.exe
+    #   "pwsh"       => PowerShell 7
+    #   "powershell" => Windows PowerShell 5.1
+    #   autre valeur => nom ou chemin d'un executable (doit accepter -NoExit -Command)
+    $wanted = switch ($Shell.Trim().ToLower()) {
+        ''           { @('pwsh.exe', 'powershell.exe') }
+        'auto'       { @('pwsh.exe', 'powershell.exe') }
+        'pwsh'       { @('pwsh.exe', 'powershell.exe') }
+        'powershell' { @('powershell.exe') }
+        default      { @($Shell, 'powershell.exe') }
+    }
+    foreach ($name in $wanted) {
+        $cmd = Get-Command $name -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($cmd) { return $cmd.Source }
+    }
+    return 'powershell.exe'
+}
+
 function Start-ClaudeIn {
     param([string]$Path, [string]$Command)
+    $shellExe = Get-ShellExe
     $wt = Get-Command wt.exe -ErrorAction SilentlyContinue
     if ($wt) {
-        # Windows Terminal : ouvre un onglet PowerShell dans le dossier et lance la commande.
+        # Windows Terminal : ouvre un onglet dans le dossier et lance la commande.
         # wt interprete ";" comme separateur de commandes : on l'echappe en "\;".
         $cmd = $Command -replace ';', '\;'
         Start-Process -FilePath "wt.exe" -ArgumentList @(
             "-d", "`"$Path`"",
-            "powershell.exe", "-NoExit", "-Command", $cmd
+            "`"$shellExe`"", "-NoExit", "-Command", $cmd
         )
     } else {
         # Le dossier est passe via -WorkingDirectory : aucun souci d'apostrophe
         # ou de caractere special dans le chemin.
-        Start-Process -FilePath "powershell.exe" -WorkingDirectory $Path -ArgumentList @(
+        Start-Process -FilePath $shellExe -WorkingDirectory $Path -ArgumentList @(
             "-NoExit", "-Command", $Command
         )
     }
